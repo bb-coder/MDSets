@@ -22,10 +22,11 @@ tags: iOS
 
 ##1.对视图进行截屏：
 
+```objc
         UIGraphics BeginImageContextWithOptions(size, NO, scale);
         [view.layer renderInContext:UIGraphicsGetCurrentContext()];
         UIImage * image = UIGraphicsGetImageFromCurrentImageContext();
-        
+```
 
 ##2.截屏后加上毛玻璃效果：
 
@@ -37,10 +38,12 @@ tags: iOS
 
 第三种我们使用苹果13年 `WWDC` 上发布的官方 `sample` 一个 `UIImage` 的分类 `UIImage+ImageEffects.h` ,它不但可以制作毛玻璃效果图片，而且可以调整模糊程度和颜色渲染。下面给出代码：
 
+```objc
         image = [image bhb_applyBlurWithRadius:15 
                                      tintColor:tintColor 
                          saturationDeltaFactor:1 
                                      maskImage:nil];//因为OC没有命名空间，避免你的程序中使用到了这个分类导致冲突，我加了前缀
+```
 
 最终的显示效果很不错，我将模糊程度尽量的调节到与新浪微博一致了，不过在这个过程中，我发现当我频繁的进行弹出操作时，内存会不断攀升如下图：
 ![演示3](http://7xkdhe.com1.z0.glb.clouddn.com/sinaAnimation3.png)
@@ -55,11 +58,14 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
 ![演示8](http://7xkdhe.com1.z0.glb.clouddn.com/sinaAnimation8.png)
 跟踪到最后，我们发现大部分未释放的内存来自于绘图和位图的创建，回想我们当初做的截图操作，图片上下文开启后并没有进行关闭操作，所以在程序不断截图的过程中开启了无数的图片上下文而且不会被释放，添加下面这句关键的代码就可以解决问题（NC的我竟然连这个都忘了加-.-）：
 
+```objc
             UIGraphicsEndImageContext();
+```
 
 #二、弹性动画
 新浪动画中，按钮弹出的动画为弹性效果，按钮到达最终位置后不会直接停止，而是做类似弹簧的一种阻尼运动，要实现这种动画也很简单 `iOS7` 后苹果非常给力的添加了 `spring` 弹性动画的快速创建方式：
 
+```objc
         [UIView animateWithDuration:(NSTimeInterval) 
                               delay:(NSTimeInterval) 
              usingSpringWithDamping:(CGFloat) 
@@ -67,23 +73,24 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
                             options:(UIViewAnimationOptions) 
                          animations:^{} 
                          completion:^(BOOL finished) {}];
+```
 
 通过对 `Damping` 阻力和 `Velocity` 初速度的设置可以实现弹性动画动画效果如下图：
 ![摘自MotionDesign](http://7xkdhe.com1.z0.glb.clouddn.com/threeballs.gif)
 
 当然实现弹性动画还可以使用[Jonathan Willing][2]大大的 `JNWSpringAnimation` ,你可以像使用 `CABasicAnimation` 一样轻松的使用它，通过改变关键的3个属性 `Damping` 阻力， `stiffness` 硬直, `mass` 质量来改变弹性动画的效果代码如下：
 
+```objc
         JNWSpringAnimation *scale = [JNWSpringAnimation
         animationWithKeyPath:@"transform.translation.x"];
         scale.damping = 7;
         scale.stiffness = 7;
         scale.mass = 1;
-
         scale.fromValue = @(0);
         scale.toValue = @(400);
-
         [redBall.layer addAnimation:scale forKey:scale.keyPath];
         redBall.transform = CGAffineTransformMakeTranslation(400, 0);
+```
 
 关键的三个属性对动画的影响如下图：
 ![摘自MotionDesign](http://7xkdhe.com1.z0.glb.clouddn.com/jnwdemo.gif)
@@ -94,11 +101,14 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
 
 对此我使用了一个 `UIScrollView` 来承载这些按钮，并声明2个数组用来保存所有的按钮和正在显示的按钮（在屏幕上，并且需要做动画）:
 
+```objc
         @property (nonatomic,strong) NSMutableArray * visableArray;//屏幕显示的按钮数组
         @property (nonatomic,strong) NSMutableArray * itemsArray;//所有按钮的数组
+```
 
 这样我在给这些按钮加动画的时候就不会浪费性能，只把动画加在当前显示在屏幕的按钮上。动画依次按照一定的时间差来执行，解决的办法我是用的 `GCD` :
 
+```objc
         [self.visableArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
             BHBCustomBtn * btn = obj;
             CGFloat x = btn.frame.origin.x;
@@ -118,6 +128,7 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
                 }];
             });
         }];
+```
 
 这样按钮就会依次以弹性动画的形式弹动出来了，是不是很简单，对于动画结束后所作的处理我将在下一节中说明。
 
@@ -126,11 +137,15 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
 动画过程中，处理用户交互的问题相当关键，视图动画中默认自动停止响应用户交互，因此当按钮进行弹性动画时，触摸它并不会生成任何事件。
 但是当你触摸加号按钮的时候，会再次进行弹出框动画，这时就会弹出两个弹出框，这是我们不希望看到的，我们可以将加号按钮的 `enable` 属性设置为 `YES` 但是这样做我们要在封装的视图内部获取外部的加号按钮，这一点违背了封装性原则，并不是一个好的设计。所以我在所有按钮的弹性动画开始时，设置：
 
+```objc
         self.superview.superview.userInteractionEnabled = NO;
+```
 
 注意视图的层级关系，我所设计的 `BHBPopView` 内部装着一个 `UIScrollView`，而它上面放着这些按钮，所以你要找到父视图的父视图才能够统一屏蔽用户的交互行为，当所有的按钮弹性动画结束时，也就是 `visableArray` 数组最后一个按钮动画结束时，我们恢复用户的交互：
 
+```objc
         self.superview.superview.userInteractionEnabled = YES;
+```
 
 这样当动画进行过程中，屏蔽了用户的交互，避免发生一些意外的情况。
 
@@ -143,7 +158,7 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
 要实现这个效果只需要做一个形变动画就可以了，关键是我们如何控制它放大和恢复大小。
 思路如下：按钮是继承自 `UIControl` ，`UIControl` 有不同的事件状态：
 
-        
+```objc     
         UIControlEventTouchDown           = 1 <<  0,      // 手指落在按钮的一瞬间触发
         UIControlEventTouchDownRepeat     = 1 <<  1,      // 多点触碰的时候，当第二根以上的手指触摸瞬间出发
         UIControlEventTouchDragInside     = 1 <<  2,      // 手指在视图范围内拖动触发
@@ -153,38 +168,40 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
         UIControlEventTouchUpInside       = 1 <<  6,      // 手指在视图内部抬起时触发
         UIControlEventTouchUpOutside      = 1 <<  7,      // 手指在视图外部抬起时触发
         UIControlEventTouchCancel         = 1 <<  8,      // 取消事件，放上了太多手指或者被上锁或者电话呼叫打断。
-
         UIControlEventValueChanged        = 1 << 12,      // 当视图的值发生改变时，发送通知。
-
         UIControlEventEditingDidBegin     = 1 << 16,     // UITextField
         UIControlEventEditingChanged      = 1 << 17,
         UIControlEventEditingDidEnd       = 1 << 18,
         UIControlEventEditingDidEndOnExit = 1 << 19,     // 'return key' ending editing
-
         UIControlEventAllTouchEvents      = 0x00000FFF,  // for touch events
         UIControlEventAllEditingEvents    = 0x000F0000,  // for UITextField
         UIControlEventApplicationReserved = 0x0F000000,  // range available for application use
         UIControlEventSystemReserved      = 0xF0000000,  // range reserved for internal framework use
         UIControlEventAllEvents           = 0xFFFFFFFF
-
+```
 
 
 我们所用到的事件是 `TouchDown` 和 `DragInside`，手指放上去触发 `TouchDown` 放大视图，在视图内部移动 `DragInside` 时恢复视图，注意按钮的作用范围是整个矩形区域包含了图片和文字，当你的手指移出图片的时候并非一定会移出按钮作用范围，所以依然会触发 `TouchUpInsite` 事件，这时候我们需要做一个属性来记录用户拖拽之后取消按钮的 `TouchUpInsite` 执行。
 
+```objc
         @property (nonatomic,assign) BOOL btnCanceled;
+```
 
 这样我们就可以实现动画效果了，具体代码如下：
 
+```objc
         //处理按钮有效的点击事件，当前按钮放大消失，其他按钮缩小消失，回调点击事件
         [btn addTarget:self action:@selector(didClickBtn:) forControlEvents:UIControlEventTouchUpInside];
         //处理手指按下事件，放大按钮
         [btn addTarget:self action:@selector(didTouchBtn:) forControlEvents:UIControlEventTouchDown];
         //处理手指拖动事件，恢复按钮大小
         [btn addTarget:self action:@selector(didCancelBtn:) forControlEvents:UIControlEventTouchDragInside];
+```
 
 #总结：
 制作类似新浪微博这种弹出框动画，我的思路是先分析逻辑，这些特效都由哪些组成，毛玻璃背景，加顶部一个 `logo` ，加中间 `UIScrollView`和上面的很多按钮,加底部工具条。研究透彻动画的执行顺序，动画执行结果有哪些分支。然后针对特效中的难点，比如毛玻璃，按钮弹性动画等等进行逐一研究攻破，最后将这些组件整合在一起变成一个好玩的动画，最后不要忘了动画的内存和性能测试。这次我模仿的新浪微博动画弹性效果并不是太理想，比起新浪原生来说不是特别一致，也希望有兴趣的你来给我一些建议优化它。最终在你的项目中加入我的弹出框动画真的只需要一句话哦：
 
+```objc
         /**
         *  直接显示一个popView在某个view上
         *
@@ -204,6 +221,7 @@ Xcode -> Product -> Profile -> Allocations， 开启之后我们来使用右下�
         *  @return pop视图
         */
         + (BHB_INSTANCETYPE)showToView:(UIView *)view withItems:(NSArray *)array andSelectBlock:(DidSelectItemBlock)block;
+```
 
 hexo出点问题修复到下半夜啊（升级到3.0太蛋疼了），现在脑子晕晕的，明天还要去新公司入职，动画中还有很多细节我不能一一分享了，欢迎大家来搞我的[Demo][3]
 

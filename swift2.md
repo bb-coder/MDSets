@@ -7,6 +7,8 @@ tags: swift
 # 数组与字典
 ---
 
+```obj-c
+
     // Playground - noun: a place where people can play
 
     import UIKit
@@ -40,7 +42,8 @@ tags: swift
     shoppingList = []
 
     occupations = [:]
-
+    
+```
 
 
 源代码请前往[我的github][1]

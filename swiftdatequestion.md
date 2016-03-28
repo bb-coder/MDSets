@@ -8,12 +8,14 @@ tags: swift
 ###先看一段代码：
 swift：
 
+```obj-c
 
     var dateFormatter = NSDateFormatter()
 
     dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
 
     let date = dateFormatter.dateFromString("1990-04-15 00:00:00")
+```
 
 运行上述代码之后你会神奇的发现， `date` 竟然是 `nil` ，而且 `nil` 的情况仅仅发生在1990年4月15日凌晨0点至1点之间。
 

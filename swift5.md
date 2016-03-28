@@ -7,6 +7,8 @@ tags: swift
 # 对象与类
 ---
 
+```obj-c
+
     //: Playground - noun: a place where people can play
 
     import UIKit
@@ -66,6 +68,8 @@ tags: swift
     }
 
     }
+
+```
 
 源代码请前往[我的github][1]
 

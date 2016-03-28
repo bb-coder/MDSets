@@ -11,8 +11,10 @@ tags: iOS
 
 在群里，有人问，`id` 类型的 `delegate` 属性到底是用 `assign` 还是 `weak` 
 
+```objc
     @property (weak, nonatomic) id<AnyDelegate> delegate;
     @property (assign, nonatomic) id<AnyDelegate> delegate;
+```
 
 大家众说纷纭，说都可以的，说 `assign` 的，说 `weak` 的都有，下面我们来看一本书中的描述：
 >“The main difference between weak and assign is that the with weak, once the object being pointed to is no longer valid, the pointer is nilled out. Assigning the pointer the value nil avoids many crashes as messages sent to nil are essentially no-ops”
@@ -27,6 +29,7 @@ tags: iOS
 
 OC：
 
+```objc
     //
     //  ViewController.m
     //  weak与assgin的区别
@@ -34,21 +37,13 @@ OC：
     //  Created by bihongbo on 14/5/20.
     //  Copyright (c) 2015年 毕洪博. All rights reserved.
     //
-
     #import "ViewController.h"
-
     @interface ViewController ()
-
     @property (nonatomic,weak) id      weakPoint;
-
     @property (nonatomic,assign) id    assignPoint;
-
     @property (nonatomic,strong) id    strongPoint;
-
     @end
-
     @implementation ViewController
-
     - (void)viewDidLoad {
     [super viewDidLoad];
     self.strongPoint = [NSDate date];
@@ -59,9 +54,8 @@ OC：
     NSLog(@"weak属性：%@",self.weakPoint);
     //    NSLog(@"assign属性：%@",self.assignPoint);
     }
-
     @end
-
+```
 
 当程序中的注释被打开时，运行程序有可能会崩溃（有时候不崩溃，你可能需要多运行几次），这是因为当 `assign` 指针所指向的内存被释放（释放并不等于抹除，只是引用计数为0），不会自动赋值 `nil` ，这样再引用 `self.assignPoint` 就会导致野指针操作，如果这个操作发生时内存还没有改变内容，依旧可以输出正确的结果，而如果发生时内存内容被改变了，就会crash。
 

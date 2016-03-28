@@ -10,16 +10,20 @@ tags: [iOS,文字排版,UILabel]
 
 
 ###1.创建属性字串
-
+```obj-c
     var mAttributeStr:NSMutableAttributedString = NSMutableAttributedString(string: "$¥12345")
+```
 ###2.添加属性
 
+```obj-c
     mAttributeStr.addAttribute(NSStrikethroughStyleAttributeName,   value:NSUnderlineStyle.StyleSingle.rawValue, range:     NSRange(location: 2, length: 5))
     mAttributeStr.addAttribute(NSStrikethroughStyleAttributeName, value:NSUnderlineStyle.StyleNone.rawValue, range: NSRange(location: 0, length: 2))
+```
 ###3.赋值给UILabel
 
+```obj-c
     strikedLabel.attributedText = mAttributeStr
-
+```
 
 ##简单3步就创建好了字符串的删除线效果，更多效果请参考[我的demo][1].
 

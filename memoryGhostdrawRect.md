@@ -30,6 +30,7 @@ categories: iOS
 
 下面我们来看一段画板功能绘制的代码：
 
+```objc
 	- (void)drawRect:(CGRect)rect
 	{
     	if (!self.paths.count) return;
@@ -40,8 +41,9 @@ categories: iOS
       	  [path stroke]; //关键的一步绘制
       	  CGContextRestoreGState(ctx);
    	 }
-	}
-	
+	} 
+```
+
 去掉绘图上下文栈和其余判断边界的代码，我们只是在当前`view`上绘制了`n`条黑色的线。看起来普普通通的绘图方式，怎么会导致内存的剧增呢？我们现在说罪魁祸首是`drawRect`证据并不充分。我们回想画板刚弹出时的内存状况，接下来我们注释掉`drawRect`所有的代码。运行的效果图如下：
 
 ![效果图1](http://7xkdhe.com1.z0.glb.clouddn.com/drawRect1.gif)
@@ -69,17 +71,23 @@ categories: iOS
 那么回到我们的画板程序，当画板从屏幕上出现的时候，因为重写了`-drawRect:`方法，`-drawRect :`方法就会自动调用。__生成一张寄宿图__后，方法里面的代码利用`Core Graphics`去绘制n条黑色的线，然后内容就会缓存起来，等待下次你调用`-setNeedsDisplay`时再进行更新。
 
 画板视图的`-drawRect:`方法的背后实际上都是底层的`CALayer`进行了重绘和保存中间产生的图片，`CALayer`的`delegate`属性默认实现了`CALayerDelegate`协议，当它需要内容信息的时候会调用协议中的方法来拿。当画板视图重绘时，因为它的支持图层`CALayer`的代理就是画板视图本身，所以支持图层会请求画板视图给它一个寄宿图来显示，它此刻会调用：
-    
-    (void)displayLayer:(CALayer *)layer;
+
+```objc
+  - (void)displayLayer:(CALayer *)layer;
+```
     
 如果画板视图实现了这个方法，就可以拿到`layer`来直接设置`contents`寄宿图，如果这个方法没有实现，支持图层`CALayer`会尝试调用：
 
-    - (void)drawLayer:(CALayer *)layer inContext:(CGContextRef)ctx;
-    
+```objc
+  - (void)drawLayer:(CALayer *)layer inContext:(CGContextRef)ctx;
+```
+
 这个方法调用之前，`CALayer`创建了一个合适尺寸的空寄宿图（尺寸由`bounds`和`contentsScale`决定）和一个`Core Graphics`的绘制上下文环境，为绘制寄宿图做准备，它作为`ctx`参数传入。在这一步生成的空寄宿图内存是相当巨大的，它就是本次内存问题的关键，一旦你实现了`CALayerDelegate`协议中的`-drawLayer:inContext:`方法或者`UIView`中的`-drawRect:`方法（其实就是前者的包装方法），图层就创建了一个绘制上下文，这个上下文需要的内存可从这个公式得出：`图层宽`\*`图层高`\*`4字节`，宽高的单位均为像素。而我们的画板程序因为要支持像猿题库一样两指挪动的效果，我们开辟的画板大小为：
 
-    _myDrawer = [[BHBMyDrawer alloc] initWithFrame:CGRectMake(0, 0, SCREEN_SIZE.width*5, SCREEN_SIZE.height*2)];
-    
+```objc
+_myDrawer = [[BHBMyDrawer alloc] initWithFrame:CGRectMake(0, 0, SCREEN_SIZE.width*5, SCREEN_SIZE.height*2)];
+```
+
 我们的画板程序的画板视图它在`iPhone6s plus`机器上的上下文内存量就是 `1920*2`\*`1080*5`\*`4字节`，__相当于`79MB`内存__，图层每次重绘的时候都需要重新抹掉内存然后重新分配。它就是我们画板程序内存暴增的真正原因。
 
 最终我们将内存暴增的原因找出来了，那么我们有没有合理的解决方案呢？
@@ -109,7 +117,7 @@ categories: iOS
 
 本文最后一个效果图为仿写猿题库练题画板功能，`demo`请在`github`搜索`BHBDrawBoarderDemo`。或者直接[戳这里](https://github.com/bb-coder/BHBDrawBoarderDemo)。
 
-好了，就是这么多，文章比较乱，如有纰漏请不吝指出！
+好了，就是这么多，文章比较乱，如有纰漏请不吝指出！想看对本文的补充[请到这里](http://bihongbo.com/2016/01/11/memoryGhostMore/)
 
 good luck！
 

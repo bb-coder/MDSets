@@ -7,6 +7,8 @@ tags: swift
 # 函数与闭包
 ---
 
+```obj-c
+
     //: Playground - noun: a place where people can play
 
     import UIKit
@@ -171,6 +173,8 @@ tags: swift
     }
 
     print(sortedNumbers)
+
+```
 
 源代码请前往[我的github][1]
 

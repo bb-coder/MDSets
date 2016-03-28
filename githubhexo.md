@@ -24,7 +24,7 @@ tags: hexo
 问题得到了完美的解决，赶紧搭建自己的博客吧，骚年们～
 good luck！
 
-[1]: http://www.cnblogs.com/mjiayou/p/3791373.html?utm_source=tuicool
+[1]: 
 
 
 ---

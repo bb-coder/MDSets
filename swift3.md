@@ -7,6 +7,8 @@ tags: swift
 # 分支与循环
 ---
 
+```obj-c
+
     // Playground - noun: a place where people can play
 
     import UIKit
@@ -157,6 +159,7 @@ tags: swift
 
     print(secondForLoop)
 
+```
 
 源代码请前往[我的github][1]
 
